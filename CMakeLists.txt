@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.12)
+project(opencv)
+find_package( OpenCV REQUIRED )
+INCLUDE_DIRECTORIES( ${OpenCV_INCLUDE_DIRS} )
+set(CMAKE_CXX_STANDARD 14)
+add_executable(opencv main.cpp file_intensity.cpp)
+target_link_libraries( opencv ${OpenCV_LIBS} )
+include_directories(${OpenCV_INCLUDE_DIRS})
