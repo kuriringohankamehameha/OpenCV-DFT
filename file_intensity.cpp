@@ -2,212 +2,207 @@
 // Created by Ramachandran on 23/03/19.
 //
 
-#include "opencv2/opencv.hpp"
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <stdint.h>
 #include <iostream>
-#include "opencv2/shape.hpp"
 #include "file_intensity.hpp"
 
 using namespace cv;
 using namespace std;
 
-void remove_channel(cv::Mat image,char* channeltype)
+void remove_channel(cv::Mat image, char *channeltype)
 {
-    //Filters the seleted channel out of image
+	//Filters the seleted channel out of image
 
-    int i = 0;
+	int i = 0;
 
-    if(strcmp(channeltype, "BLUE") == 0)
-    {
-        //Remove Blue Channel
-        i=0;
+	if (strcmp(channeltype, "BLUE") == 0)
+	{
+		//Remove Blue Channel
+		i = 0;
+	}
 
-    }
+	else if (strcmp(channeltype, "GREEN") == 0)
+	{
+		//Remove Green Channel
+		i = 1;
+	}
 
-    else if(strcmp(channeltype, "GREEN") == 0)
-    {
-        //Remove Green Channel
-        i=1;
+	else
+	{
+		i = 2;
+	}
 
-    }
-
-    else
-    {
-        i=2;
-    }
-
-    for(int r=0;r<image.rows;r++)
-    {
-        for(int c=0;c<image.cols;c++)
-        {
-            //CV Template for 3byte data (Each COLORED image has 3 parts -B,G,R)
-            image.at<cv::Vec3b>(r,c)[i] = image.at<cv::Vec3b>(r,c)[i]*0.0f;
-        }
-    }
-
+	for (int r = 0; r < image.rows; r++)
+	{
+		for (int c = 0; c < image.cols; c++)
+		{
+			//CV Template for 3byte data (Each COLORED image has 3 parts -B,G,R)
+			image.at<cv::Vec3b>(r, c)[i] = image.at<cv::Vec3b>(r, c)[i] * 0.0f;
+		}
+	}
 }
 
-void remove_via_merge(cv::Mat image,char* channeltype) {
-    //Filters the seleted channel out of image
+void remove_via_merge(cv::Mat image, char *channeltype)
+{
+	//Filters the seleted channel out of image
 
-    int i = 0;
+	int i = 0;
 
-    if (strcmp(channeltype, "BLUE") == 0) {
-        //Remove Blue Channel
-        i = 0;
+	if (strcmp(channeltype, "BLUE") == 0)
+	{
+		//Remove Blue Channel
+		i = 0;
+	}
+	else if (strcmp(channeltype, "GREEN") == 0)
+	{
+		//Remove Green Channel
+		i = 1;
+	}
+	else
+	{
+		i = 2;
+	}
 
-    } else if (strcmp(channeltype, "GREEN") == 0) {
-        //Remove Green Channel
-        i = 1;
+	Mat splitchannels[3];
 
-    } else {
-        i = 2;
-    }
+	cv::split(image, splitchannels);
 
-    Mat splitchannels[3];
+	splitchannels[i] = Mat::zeros(splitchannels[i].size(), CV_8UC1);
 
-    cv::split(image, splitchannels);
+	merge(splitchannels, 3, image);
 
-    splitchannels[i] = Mat::zeros(splitchannels[i].size(), CV_8UC1);
-
-    merge(splitchannels, 3, image);
-
-    return ;
-
+	return;
 }
 
-void dft_transform(cv::Mat& src , cv::Mat& dst)
+void dft_transform(cv::Mat &src, cv::Mat &dst)
 {
-    //ONLY for GREYSCALE image
-    //Performs a Discrete Fourier Transorm of the given image
+	//ONLY for GREYSCALE image
+	//Performs a Discrete Fourier Transorm of the given image
 
-    assert(src.type() == 0);
+	assert(src.type() == 0);
 
-    //First, convert the integer fields of the colors of the GREYSCALE image
+	//First, convert the integer fields of the colors of the GREYSCALE image
 
-    Mat FloatArray;
+	Mat FloatArray;
 
-    src.convertTo(FloatArray, CV_32FC1, 1.0/255.0);
-    Mat ComplexPart[2] = {FloatArray,Mat::zeros(FloatArray.size(),CV_32F)};
+	src.convertTo(FloatArray, CV_32FC1, 1.0 / 255.0);
+	Mat ComplexPart[2] = {FloatArray, Mat::zeros(FloatArray.size(), CV_32F)};
 
-    Mat dftReady;
+	Mat dftReady;
 
-    //Merge both parts
-    merge(ComplexPart, 2, dftReady);
+	//Merge both parts
+	merge(ComplexPart, 2, dftReady);
 
-    Mat dftOriginal;
+	Mat dftOriginal;
 
-    cv::dft(dftReady, dftOriginal, DFT_COMPLEX_OUTPUT);
+	cv::dft(dftReady, dftOriginal, DFT_COMPLEX_OUTPUT);
 
-    dst = dftOriginal;
+	dst = dftOriginal;
 }
 
-void showDFT(cv::Mat& src)
+void showDFT(cv::Mat &src)
 {
-    Mat splitArray[2] = {Mat::zeros(src.size(),CV_32F),Mat::zeros(src.size(),CV_32F)};
+	Mat splitArray[2] = {Mat::zeros(src.size(), CV_32F), Mat::zeros(src.size(), CV_32F)};
 
-    split(src, splitArray);
+	split(src, splitArray);
 
-    //Find Magnitude of the Vector
-    Mat dftMagnitude;
+	//Find Magnitude of the Vector
+	Mat dftMagnitude;
 
-    magnitude(splitArray[0], splitArray[1], dftMagnitude);
+	magnitude(splitArray[0], splitArray[1], dftMagnitude);
 
-    //First, use logs to scale down the values
-    //To ensure positive values, add 1 to every value
-    dftMagnitude += Scalar::all(1);
+	//First, use logs to scale down the values
+	//To ensure positive values, add 1 to every value
+	dftMagnitude += Scalar::all(1);
 
-    log(dftMagnitude,dftMagnitude);
+	log(dftMagnitude, dftMagnitude);
 
-    //Finally, normalize
-    normalize(dftMagnitude, dftMagnitude, 0, 1, CV_MINMAX);
+	//Finally, normalize
+	normalize(dftMagnitude, dftMagnitude, 0, 1, NORM_MINMAX);
 
-    //Now recentre before displaying
-    recenterDFT(dftMagnitude);
+	//Now recentre before displaying
+	recenterDFT(dftMagnitude);
 
-    imshow("DFT", dftMagnitude);
+	imshow("DFT", dftMagnitude);
 
-    waitKey();
-
+	waitKey(0);
 }
 
-void swapMatrices(cv::Mat& m1,cv::Mat& m2)
+void swapMatrices(cv::Mat &m1, cv::Mat &m2)
 {
 
-    Mat swapMat;
+	Mat swapMat;
 
-    m1.copyTo(swapMat);
-    m2.copyTo(m1);
-    swapMat.copyTo(m2);
+	m1.copyTo(swapMat);
+	m2.copyTo(m1);
+	swapMat.copyTo(m2);
 
-    return ;
+	return;
 }
 
-void recenterDFT(cv::Mat& src)
+void recenterDFT(cv::Mat &src)
 {
-    //Re-centers the DFT
+	//Re-centers the DFT
 
-    //Find the midpoint (centre) and swap about the centre
-    int centerX = src.cols / 2;
-    int centerY = src.rows / 2;
+	//Find the midpoint (centre) and swap about the centre
+	int centerX = src.cols / 2;
+	int centerY = src.rows / 2;
 
-    //  1   2       4   3
-    //    -     ->    -
-    //  3   4       2   1
+	//  1   2       4   3
+	//    -     ->    -
+	//  3   4       2   1
 
-    //4 Quadrant image matrices
-    //Initialize 4 objects
-    Mat q1(src,Rect(0,0, centerX, centerY));
-    Mat q2(src,Rect(centerX, 0, centerX, centerY));
-    Mat q3(src,Rect(0, centerY, centerX, centerY));
-    Mat q4(src,Rect(centerX, centerY, centerX, centerY));
+	//4 Quadrant image matrices
+	//Initialize 4 objects
+	Mat q1(src, Rect(0, 0, centerX, centerY));
+	Mat q2(src, Rect(centerX, 0, centerX, centerY));
+	Mat q3(src, Rect(0, centerY, centerX, centerY));
+	Mat q4(src, Rect(centerX, centerY, centerX, centerY));
 
-    swapMatrices(q1,q4);
-    swapMatrices(q2,q3);
+	swapMatrices(q1, q4);
+	swapMatrices(q2, q3);
 
-    // Now the DFT is in such a way such that the lower frequency information has a higher Amplitude about the center
-    // as compared to the rest.
-
-
+	// Now the DFT is in such a way such that the lower frequency information has a higher Amplitude about the center
+	// as compared to the rest.
 }
 
-void image_modifier()
+void image_modifier(Mat original)
 {
-    cout<<"OpenCV Image modifier\n";
+	cout << "OpenCV Image modifier\n";
 
-    Mat original = imread("/Users/ramachandran/Downloads/lena.png");
-    Mat modified = imread("/Users/ramachandran/Downloads/lena.png",CV_LOAD_IMAGE_GRAYSCALE);
+	Mat modified = original.clone();
+	cvtColor(original, modified, COLOR_BGR2GRAY);
 
-    for(int r=0;r<modified.rows;r++)
-    {
-        for(int c=0;c<modified.cols;c++)
-        {
-            //CV Template for 3byte data (Each COLORED image has 3 parts -B,G,R)
-            modified.at<cv::Vec3b>(r,c) = modified.at<cv::Vec3b>(r,c)*0.5f;
-        }
-    }
+	for (int r = 0; r < modified.rows; r++)
+	{
+		for (int c = 0; c < modified.cols; c++)
+		{
+			// We're doing this for a Greyscale image, so the pointer is a <uchar>
+			modified.at<uchar>(r, c) = modified.at<uchar>(r, c) * 0.5f;
+		}
+	}
 
-    cv::Point pt1(0,0);
-    //cv::Point pt2(modified.rows-1,modified.cols-1);
-    cv::Point pt2(100,100);
+	cv::Point pt1(0, 0);
+	//cv::Point pt2(modified.rows-1,modified.cols-1);
+	cv::Point pt2(100, 100);
 
-    rectangle(modified,pt1,pt2,(0,255,0));
+	rectangle(modified, pt1, pt2, (0, 255, 0));
 
-    //remove_channel(modified,"BLUE");
+	//remove_channel(modified,"BLUE");
 
-    imshow("Original", original);
+	//imshow("Original", original);
 
-    //imshow("Modified", modified);
+	//imshow("Modified", modified);
 
-    //remove_via_merge(modified, "BLUE");
-    //imshow("Modified", modified);
-    //waitKey();
+	//remove_via_merge(modified, "BLUE");
+	//imshow("Modified", modified);
+	//waitKey();
 
+	dft_transform(modified, modified);
 
-    dft_transform(modified, modified);
+	showDFT(modified);
 
-    showDFT(modified);
-
-
-    return;
+	return;
 }
