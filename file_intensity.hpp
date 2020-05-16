@@ -4,7 +4,7 @@
 #include "opencv2/shape.hpp"
 
 
-void image_modifier();
+void image_modifier(cv::Mat original);
 
 void remove_channel(cv::Mat image,char* channeltype);
 
