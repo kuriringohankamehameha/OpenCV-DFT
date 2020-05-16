@@ -1,7 +1,8 @@
-#include<iostream>
+#pragma once
+#include <iostream>
+#include <opencv2/opencv.hpp>
 #include "opencv2/opencv.hpp"
-#include<string.h>
-#include "opencv2/shape.hpp"
+#include <string.h>
 
 
 void image_modifier(cv::Mat original);
